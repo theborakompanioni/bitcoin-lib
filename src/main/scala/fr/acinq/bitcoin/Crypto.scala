@@ -157,7 +157,7 @@ object Crypto {
     def add(point: Point): Point = if (Secp256k1Context.isEnabled)
       Point(ByteVector.view(NativeSecp256k1.pubKeyAdd(value.toArray, point.value.toArray)))
     else
-      Point(ecpoint.add(point.ecpoint))
+      Point(ecpoint.add(point.ecpoint).normalize())
 
     def add(scalar: Scalar): Point = if (Secp256k1Context.isEnabled)
       Point(ByteVector.view(NativeSecp256k1.privKeyTweakAdd(value.toArray, scalar.toBin.toArray)))
@@ -167,12 +167,12 @@ object Crypto {
     def substract(point: Point): Point = if (Secp256k1Context.isEnabled)
       Point(ByteVector.view(NativeSecp256k1.pubKeyAdd(value.toArray, NativeSecp256k1.pubKeyNegate(point.value.toArray))))
     else
-      Point(ecpoint.subtract(point.ecpoint))
+      Point(ecpoint.subtract(point.ecpoint).normalize())
 
     def multiply(scalar: Scalar): Point = if (Secp256k1Context.isEnabled)
       Point(ByteVector.view(NativeSecp256k1.pubKeyTweakMul(toBin(false).toArray, scalar.toBin.toArray)))
     else
-      Point(ecpoint.multiply(scalar.bigInt))
+      Point(ecpoint.multiply(scalar.bigInt).normalize())
 
     //def normalize = Point(value.normalize())
 
@@ -197,6 +197,14 @@ object Crypto {
     protected def writeReplace: Object = PointProxy(toBin(false))
 
     override def toString = toBin(true).toHex
+
+    override def hashCode(): Int = toBin(true).hashCode
+
+    override def equals(obj: Any): Boolean = obj match {
+      case null => false
+      case p: Point => toBin(true) == p.toBin(true)
+      case _ => false
+    }
   }
 
   case class PointProxy(bin: ByteVector) {
@@ -210,7 +218,7 @@ object Crypto {
       if (Secp256k1Context.isEnabled)
         NativeSecp256k1.parsePubkey(point.toArray).length == 65
       else
-        curve.getCurve.decodePoint(point.toArray).isValid
+        curve.getCurve.decodePoint(point.toArray).normalize().isValid
     }
   }
 
