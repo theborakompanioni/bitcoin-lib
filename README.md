@@ -16,7 +16,6 @@ This is a simple scala library which implements most of the bitcoin protocol:
 * pay to script tx / multisig tx
 * BIP 32 (deterministic wallets)
 * BIP 39 (mnemonic code for generating deterministic keys)
-* BIP 70
 * BIP 173 (Base32 address format for native v0-16 witness outputs)
 
 ## Objectives
@@ -48,12 +47,12 @@ Our goal is not to re-implement a full Bitcoin node but to build a library that 
   <dependency>
     <groupId>fr.acinq</groupId>
     <artifactId>bitcoin-lib_2.11</artifactId>
-    <version>0.11</version>
+    <version>0.15</version>
   </dependency>
 </dependencies>
 ```
 
-The latest snapshot (development) version is 0.12-SNAPSHOT, the latest released version is 0.11
+The latest snapshot (development) version is 0.16-SNAPSHOT, the latest released version is 0.15
 
 ## Segwit support
 
@@ -147,7 +146,7 @@ This sample demonstrates how to serialize, create and verify simple P2PKH transa
   // we have a tx that was sent to a public key that we own
   val to = "mi1cMMSL9BZwTQZYpweE1nTmwRxScirPp3"
   val (Base58.Prefix.PubkeyAddressTestnet, pubkeyHash) = Base58Check.decode(to)
-  val amount = 10000 satoshi
+  val amount = 10000 sat
 
   val privateKey = PrivateKey.fromBase58("cRp4uUnreGMZN8vB7nQFX6XWMHU5Lc73HMAhmcDEwHfbgRS66Cqp", Base58.Prefix.SecretKeyTestnet)
   val publicKey = privateKey.publicKey

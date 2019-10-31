@@ -4,7 +4,7 @@ import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
 import java.math.BigInteger
 import java.nio.ByteOrder
 
-import fr.acinq.bitcoin.Crypto.{PrivateKey, PublicKey, Scalar}
+import fr.acinq.bitcoin.Crypto.{PrivateKey, PublicKey}
 import fr.acinq.bitcoin.Protocol._
 import scodec.bits.ByteVector
 
@@ -52,7 +52,7 @@ object DeterministicWallet {
 
   case class ExtendedPrivateKey(secretkeybytes: ByteVector32, chaincode: ByteVector32, depth: Int, path: KeyPath, parent: Long) {
 
-    def privateKey: PrivateKey = PrivateKey(Scalar(secretkeybytes), compressed = true)
+    def privateKey: PrivateKey = PrivateKey(secretkeybytes)
 
     def publicKey: PublicKey = privateKey.publicKey
   }
@@ -82,9 +82,6 @@ object DeterministicWallet {
     val buffer = ByteVector.view(out.toByteArray)
     Base58Check.encode(prefix, buffer)
   }
-
-  @deprecated("use encode(priv, prefix (xpriv or tpriv for example)) instead", "v0.9.17")
-  def encode(input: ExtendedPrivateKey, testnet: Boolean): String = encode(input, if (testnet) tprv else xprv)
 
   case class ExtendedPublicKey(publickeybytes: ByteVector, chaincode: ByteVector32, depth: Int, path: KeyPath, parent: Long) {
     require(publickeybytes.length == 33)
@@ -117,9 +114,6 @@ object DeterministicWallet {
     Base58Check.encode(prefix, buffer)
   }
 
-  @deprecated("use encode(pub, prefix (xpub or tpub for example)) instead", "v0.9.17")
-  def encode(input: ExtendedPublicKey, testnet: Boolean): String = encode(input, if (testnet) tpub else xpub)
-
   /**
     *
     * @param seed random seed
@@ -138,7 +132,7 @@ object DeterministicWallet {
     * @return the public key for this private key
     */
   def publicKey(input: ExtendedPrivateKey): ExtendedPublicKey = {
-    ExtendedPublicKey(input.publicKey.toBin, input.chaincode, depth = input.depth, path = input.path, parent = input.parent)
+    ExtendedPublicKey(input.publicKey.value, input.chaincode, depth = input.depth, path = input.path, parent = input.parent)
   }
 
   /**
@@ -176,11 +170,11 @@ object DeterministicWallet {
       throw new RuntimeException("cannot generated child private key")
     }
 
-    val key = Scalar(IL).add(parent.privateKey)
+    val key = PrivateKey(IL).add(parent.privateKey)
     if (key.isZero) {
       throw new RuntimeException("cannot generated child private key")
     }
-    val buffer = ByteVector32(key.toBin.take(32))
+    val buffer = key.value
     ExtendedPrivateKey(buffer, chaincode = IR, depth = parent.depth + 1, path = parent.path.derive(index), parent = fingerprint(parent))
   }
 
@@ -200,11 +194,11 @@ object DeterministicWallet {
     if (p.compareTo(Crypto.curve.getN) >= 0) {
       throw new RuntimeException("cannot generated child public key")
     }
-    val Ki = Scalar(p).toPoint.add(parent.publicKey)
-    if (Ki.isInfinity) {
+    val Ki = PrivateKey(p).publicKey.add(parent.publicKey)
+    if (Ki.ecpoint.isInfinity) {
       throw new RuntimeException("cannot generated child public key")
     }
-    val buffer = ByteVector.view(Ki.getEncoded(true))
+    val buffer = Ki.value
     ExtendedPublicKey(buffer, chaincode = IR, depth = parent.depth + 1, path = parent.path.derive(index), parent = fingerprint(parent))
   }
 
